@@ -1,0 +1,204 @@
+Nice — I’ll walk you through each step in plain, easy language and show a concrete example so you can practice. I’ll cover **how** to do each check, **what to look for**, and **what a real phishing sample might look like**. I’ll finish with a compact checklist you can use every time.
+
+# 1) Obtain a sample phishing email
+
+Simple ways to get practice samples:
+
+* Look for “phishing email samples” on search engines (many security blogs, GitHub repos and training sites provide redacted examples).
+* Use intentionally-malicious test emails from phishing-awareness training platforms (if you have access).
+* If you have a suspicious email in your own inbox, use that (but don’t click links or open attachments).
+
+**Important:** Do the analysis on a safe machine (or in a sandbox/VM) if attachments are present. Never open attachments or click links directly.
+
+---
+
+# 2) Examine the sender’s email address for spoofing
+
+**What to do**
+
+1. Look at the visible “From” address in the email client (e.g., `From: support@bank-example.com`).
+2. Click/inspect the address to see the full email (some clients show a friendly name plus the real address).
+3. Ask: does the domain match the organization? (e.g., `@bank-example.com` vs `@bank-example-support.com`)
+
+**Examples**
+
+* Legit-looking but **spoofed**: `From: Bank Support <support@bank-example.com>` — but the actual address may be `support@bank-example-support.com` or `support@randomdomain.xyz`.
+* Look for subtle typos: `paypa1.com` (one is the digit `1`) vs `paypal.com`.
+
+**Red flags**
+
+* Domain is different from the organization name.
+* Extra words, hyphens, or different TLDs (`.ru`, `.xyz`, `.co` instead of `.com`).
+* Email uses public domains for official business (`@gmail.com`, `@yahoo.com` for a company support address).
+
+---
+
+# 3) Check email headers for discrepancies (use an analyzer)
+
+Email headers contain routing and authentication info (Received lines, SPF/DKIM/DMARC results). Steps:
+
+**How to view headers** (common clients)
+
+* **Gmail (web):** Open message → three-dot menu → “Show original”.
+* **Outlook (desktop):** File → Properties → Internet headers.
+* **Thunderbird:** View → Message Source.
+
+**What to look for (key header fields)**
+
+* `Received:` lines — show the mail servers the message passed through (bottom-most `Received` is the origin).
+* `Return-Path:` — where bounces go; if it doesn’t match sender, suspicious.
+* `Authentication-Results:` — shows SPF/DKIM/DMARC evaluation (pass/fail/neutral).
+* `From:` vs `Reply-To:` — `Reply-To` may be set to a different address.
+* `Message-ID:` — legitimate providers use consistent formats; odd or missing IDs can be suspicious.
+
+**Example (short header snippet)**
+
+```
+Return-Path: <support@bank-example-support.com>
+Received: from smtp123.somehost.ru (unknown [203.0.113.45]) by mx.google.com ...
+Received-SPF: fail (google.com: domain of bank-example.com does not designate 203.0.113.45 as permitted sender)
+Authentication-Results: mx.google.com;
+    spf=fail (google.com: domain of bank-example.com does not permit this IP) smtp.mailfrom=bank-example.com;
+    dkim=neutral (no signature)
+From: "Bank of Example" <support@bank-example.com>
+Reply-To: support@bank-example-support.com
+```
+
+**How to interpret**
+
+* `Received-SPF: fail` — the sending IP is not authorised by the sender’s domain SPF record → suspicious.
+* `dkim=neutral` or `dkim=fail` — the DKIM signature is missing/invalid → suspicious.
+* If `From:` domain and `Return-Path` or `Reply-To` differ, that’s suspicious.
+
+**Tip:** After reading headers you can paste them into an “email header analyzer” (many free tools exist) to get a parsed, readable output.
+
+---
+
+# 4) Identify suspicious links or attachments
+
+**Links**
+
+* **Hover** over links (desktop) to see the actual URL shown in the browser status bar (or right-click → “Copy link address”).
+* Compare the visible text vs the real link. Example: link text `https://bank-example.com/login` but real URL `http://123.45.67.89/~bank/login.php` or `http://bank-example.secure-login.ru/login`.
+* Look for long URLs with many subfolders, IP addresses, or strange domains.
+
+**Attachments**
+
+* See the filename and extension (`.exe`, `.zip`, `.scr`, `.docm`, `.js` are high risk).
+* If the email claims an invoice/receipt but attachment is `.exe` → definitely malicious.
+* If you must check an attachment, upload it to a sandbox/virus scanner service (do not open locally on your PC).
+
+**Example**
+
+* Email text: “Click here to verify your account: [https://bank-example.com/verify”](https://bank-example.com/verify”)
+* Hover reveals: `http://account.verify-bank-example.com/login.php?id=1245` pointing to a foreign domain — suspicious.
+
+---
+
+# 5) Look for urgent or threatening language in the email body
+
+Phishers try to create panic or urgency so you act without thinking.
+
+**Phrases to watch**
+
+* “Your account will be closed in 24 hours”
+* “Immediate action required”
+* “Verify now to avoid suspension”
+* “You have won — claim now” (for scam/spam)
+
+**What to do**
+
+* Treat all urgent threats as suspicious. Real companies rarely force immediate login via email; they usually allow multiple notice channels and never ask for credentials by email.
+
+---
+
+# 6) Note any mismatched URLs (hover to see real link)
+
+This is a repeat of #4 but with focus on mismatch.
+
+**Quick test**
+
+* If the display text looks like a legitimate domain but the hover URL is different — RED FLAG.
+* If the link uses URL shorteners (`bit.ly`, `tinyurl`) in suspicious contexts (e.g., bank) — expand the short link before opening.
+
+**How to expand short links**
+
+* Copy the shortened link and put it in a short-link previewer or paste into a text box that shows the final URL, or paste into a browser address bar but do not press Enter — many preview sites exist.
+
+---
+
+# 7) Verify presence of spelling or grammar errors
+
+Phishing emails often have awkward wording, spelling mistakes, or bad punctuation.
+
+**Examples**
+
+* “Dear Valued Costumer” (typo)
+* Strange capitalization: “Please Click Here To Update”
+* Odd sentence structure or literal translations
+
+**Note:** Some phishers are good at English. Absence of errors ≠ safe.
+
+---
+
+# 8) Summarize phishing traits found in the email (how to make a summary)
+
+After you inspect everything, make a short summary listing all suspicious traits.
+
+**Example phishing email (full sample)**
+
+Subject: Urgent: Verify Your Bank Account Now
+
+From: Bank of Example [support@bank-example.com](mailto:support@bank-example.com)
+Reply-To: [security@bank-example-support.com](mailto:security@bank-example-support.com)
+
+Body:
+
+> Dear Customer,
+> We detected a suspicious login to your account. You must verify your information within 24 hours otherwise your account will be suspended.
+> Click here to verify: [https://bank-example.com/verify](https://bank-example.com/verify)
+> Thank you,
+> Bank of Example Security Team
+
+Attachment: `Statement.exe`
+
+**Analysis & summary**
+
+* **Sender address mismatch:** `From` shows `support@bank-example.com` but `Reply-To` and `Return-Path` are different (`bank-example-support.com`) → suspicious.
+* **Header problems:** SPF fail; DKIM missing/invalid; `Received:` shows origin IP from a foreign host not associated with the bank → suspicious.
+* **Link mismatch:** Displayed link looks like bank domain but actually points to unknown IP / different domain → suspicious.
+* **Attachment risky:** `Statement.exe` — executable attachment masquerading as a statement → high risk.
+* **Urgency:** “verify within 24 hours” — typical phishing pressure.
+* **Grammar/spelling:** maybe okay — absence of errors doesn’t clear it.
+* **Conclusion:** This is almost certainly a phishing email. Do not click links or run the attachment.
+
+---
+
+# Additional safety steps & recommended actions
+
+1. **Do NOT click links or open attachments.**
+2. Forward the phishing email to your IT/security team or to the organization being impersonated (many companies have `abuse@` or `phishing@` addresses).
+3. Mark the message as spam/phishing in your email client.
+4. If you clicked a link or gave credentials, immediately change your password on the real site (not via the emailed link) and enable MFA. Notify the organization.
+5. Save the original email (headers included) for investigation.
+
+---
+
+# Quick checklist (for everyday use)
+
+* [ ] Inspect full sender email (not only the display name).
+* [ ] View headers: check SPF/DKIM/DMARC and Received chain.
+* [ ] Hover/copy links to verify real URLs; don’t click.
+* [ ] Don’t open attachments — especially `.exe`, `.zip`, `.scr`, `.docm`.
+* [ ] Watch for urgency, threats, or requests for passwords/2FA codes.
+* [ ] Check spelling/grammar — but don’t rely solely on it.
+* [ ] If suspicious, report and delete.
+
+---
+
+If you want, I can:
+
+* parse a **specific** suspicious email header you paste here (redact any personal info) and explain each header line; **OR**
+* create a printable one-page checklist/infographic for quick reference.
+
+Which would help you more right now?
