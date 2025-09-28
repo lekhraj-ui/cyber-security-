@@ -1,0 +1,242 @@
+I'll provide a comprehensive guide covering both Windows Firewall and Linux UFW (Uncomplicated Firewall) methods.
+
+## Windows Firewall Method
+
+### 1. Open Firewall Configuration Tool
+```cmd
+# Method 1: GUI
+Press Windows Key + R, type "wf.msc", press Enter
+
+# Method 2: PowerShell (Admin)
+Start PowerShell as Administrator
+```
+
+### 2. List Current Firewall Rules
+```powershell
+# View all inbound rules
+Get-NetFirewallRule -Direction Inbound | Where-Object {$_.Enabled -eq "True"} | Format-Table Name, DisplayName, Direction, Action
+
+# View specific rule details
+Get-NetFirewallRule -DisplayName "Your Rule Name"
+
+# View with port information
+Get-NetFirewallPortFilter | Get-NetFirewallRule | Where-Object {$_.Enabled -eq "True"}
+```
+
+### 3. Add Rule to Block Telnet (Port 23)
+```powershell
+# Block inbound Telnet traffic
+New-NetFirewallRule -DisplayName "Block Telnet" -Direction Inbound -Protocol TCP -LocalPort 23 -Action Block
+
+# Alternative using netsh (legacy but works)
+netsh advfirewall firewall add rule name="Block Telnet" dir=in action=block protocol=TCP localport=23
+```
+
+### 4. Test the Block Rule
+```cmd
+# Test locally (from another terminal)
+telnet localhost 23
+
+# Test remotely (from another machine)
+telnet [target-ip] 23
+
+# Using Test-NetConnection in PowerShell
+Test-NetConnection -ComputerName localhost -Port 23
+```
+
+### 5. Allow SSH (Port 22) - If Needed
+```powershell
+# Allow SSH inbound
+New-NetFirewallRule -DisplayName "Allow SSH" -Direction Inbound -Protocol TCP -LocalPort 22 -Action Allow
+
+# For specific source IP
+New-NetFirewallRule -DisplayName "Allow SSH from Specific IP" -Direction Inbound -Protocol TCP -LocalPort 22 -Action Allow -RemoteAddress 192.168.1.100
+```
+
+### 6. Remove Test Block Rule
+```powershell
+# Remove the Telnet block rule
+Remove-NetFirewallRule -DisplayName "Block Telnet"
+
+# Using netsh
+netsh advfirewall firewall delete rule name="Block Telnet"
+
+# Verify removal
+Get-NetFirewallRule -DisplayName "Block Telnet"
+```
+
+## Linux UFW Method
+
+### 1. Open Terminal and Check UFW Status
+```bash
+sudo ufw status verbose
+```
+
+### 2. List Current Firewall Rules
+```bash
+# List all rules with numbers
+sudo ufw status numbered
+
+# Detailed listing
+sudo ufw show added
+```
+
+### 3. Add Rule to Block Telnet (Port 23)
+```bash
+# Block inbound Telnet traffic
+sudo ufw deny 23/tcp
+
+# Alternative syntax
+sudo ufw deny telnet
+
+# Verify the rule
+sudo ufw status numbered
+```
+
+### 4. Test the Block Rule
+```bash
+# Install telnet client if not present
+sudo apt-get install telnet
+
+# Test locally
+telnet localhost 23
+
+# Test from remote machine
+telnet [server-ip] 23
+
+# Using netcat for testing
+nc -zv localhost 23
+```
+
+### 5. Allow SSH (Port 22)
+```bash
+# Allow SSH (important - do this before enabling UFW!)
+sudo ufw allow 22/tcp
+
+# Alternative syntax
+sudo ufw allow ssh
+
+# Enable UFW (only after allowing SSH!)
+sudo ufw enable
+```
+
+### 6. Remove Test Block Rule
+```bash
+# List rules with numbers
+sudo ufw status numbered
+
+# Remove the Telnet block rule (replace X with actual rule number)
+sudo ufw delete X
+
+# Or delete by specification
+sudo ufw delete deny 23/tcp
+```
+
+## Complete Practical Example
+
+### Windows Example Session:
+```powershell
+# Run as Administrator
+PS C:\> # Step 1: Check current rules
+PS C:\> Get-NetFirewallRule -Direction Inbound | Where-Object {$_.Enabled -eq "True"} | Select-Object -First 5
+
+# Step 2: Block Telnet
+PS C:\> New-NetFirewallRule -DisplayName "Block Telnet Test" -Direction Inbound -Protocol TCP -LocalPort 23 -Action Block
+
+# Step 3: Test the block
+PS C:\> Test-NetConnection -ComputerName localhost -Port 23
+# Output should show "TcpTestSucceeded: False"
+
+# Step 4: Clean up
+PS C:\> Remove-NetFirewallRule -DisplayName "Block Telnet Test"
+```
+
+### Linux Example Session:
+```bash
+# Step 1: Check UFW status
+$ sudo ufw status verbose
+Status: inactive
+
+# Step 2: Allow SSH first!
+$ sudo ufw allow ssh
+Rules updated
+Rules updated (v6)
+
+# Step 3: Block Telnet
+$ sudo ufw deny 23/tcp
+Rules updated
+Rules updated (v6)
+
+# Step 4: Enable UFW
+$ sudo ufw enable
+Command may disrupt existing ssh connections. Proceed with operation (y|n)? y
+Firewall is active and enabled on system startup
+
+# Step 5: Test the block
+$ telnet localhost 23
+Trying 127.0.0.1...
+telnet: Unable to connect to remote host: Connection refused
+
+# Step 6: Remove rule and check
+$ sudo ufw status numbered
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] 22/tcp                     ALLOW IN    Anywhere
+[ 2] 23/tcp                     DENY IN     Anywhere
+
+$ sudo ufw delete 2
+Deleting:
+ deny 23/tcp
+Proceed with operation (y|n)? y
+Rule deleted
+```
+
+## Documentation of Steps
+
+### Windows GUI Method:
+1. **Open Windows Defender Firewall with Advanced Security**
+   - Press Win+R → `wf.msc` → Enter
+2. **View Rules** → Inbound Rules (sorted by Enabled/Disabled)
+3. **Create Block Rule**:
+   - Right-click "Inbound Rules" → New Rule
+   - Select "Port" → TCP → Specific port: 23
+   - Select "Block the connection"
+   - Name: "Block Telnet"
+4. **Test**: Use telnet command or Test-NetConnection
+5. **Remove**: Find rule → Right-click → Delete
+
+### How Firewall Filters Traffic
+
+**Packet Filtering Process:**
+1. **Rule Evaluation Order**:
+   - Firewalls process rules from top to bottom (order matters)
+   - First matching rule determines the action
+   - Default policy applies if no rules match
+
+2. **Filtering Criteria**:
+   - **Source/Destination IP**: Network addresses
+   - **Port Numbers**: Application endpoints (22-SSH, 23-Telnet, 80-HTTP)
+   - **Protocol**: TCP, UDP, ICMP
+   - **Direction**: Inbound (ingress) or Outbound (egress)
+   - **Action**: Allow, Block, or Bypass
+
+3. **Stateful Inspection**:
+   - Tracks connection state (NEW, ESTABLISHED, RELATED)
+   - Allows return traffic for established connections
+   - Provides context-aware filtering
+
+4. **Default Policies**:
+   - **Windows**: Default allow inbound, allow outbound
+   - **UFW**: Default deny inbound, allow outbound
+   - **Best Practice**: Default deny, explicit allow
+
+**Example Traffic Flow:**
+```
+Incoming Packet → Check Source IP → Check Destination Port → 
+Check Protocol → Match Rule → Apply Action (Allow/Block) → 
+Log Event (if configured) → Forward/Drop Packet
+```
+
+This comprehensive approach ensures you understand both the practical implementation and the underlying principles of firewall operation.
