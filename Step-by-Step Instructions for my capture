@@ -1,0 +1,131 @@
+You're right! The export option might be named differently. Here are all the possible locations and names for exporting as PCAP:
+
+## Alternative Export Locations in Wireshark
+
+### **Method 1: File Menu Options**
+
+**Look for these exact menu items:**
+```
+File → Export Specified Packets...
+File → Save As...
+File → Export Packet Dissections → As PCAP...
+```
+
+### **Method 2: Right-Click Method**
+```
+1. Select any packet in the list
+2. Right-click → Export Packet Dissections → As PCAP...
+```
+
+### **Method 3: Keyboard Shortcuts**
+```
+Ctrl + S  (Save As)
+```
+
+## If You Still Can't Find PCAP Export
+
+### **Solution 1: Use "Save As" Instead**
+```
+1. File → Save As
+2. In "Save as type" dropdown, select:
+   - *.pcap
+   - *.pcapng (newer format, also acceptable)
+   - *.cap
+```
+
+### **Solution 2: Command Line Export**
+If the GUI isn't working, use command line:
+
+```bash
+# Convert existing file to pcap
+editcap -F pcap input_file.pcapng output_file.pcap
+
+# Or capture directly to pcap
+dumpcap -i "Wi-Fi" -w capture.pcap -a duration:60
+```
+
+### **Solution 3: Use tshark (Command Line)**
+```bash
+# Direct capture to pcap file (no GUI needed)
+tshark -i "Wi-Fi" -w my_capture.pcap -a duration:60
+
+# Generate traffic while capturing
+tshark -i "Wi-Fi" -w traffic.pcap &
+ping google.com
+curl http://example.com
+nslookup facebook.com
+# Wait 60 seconds, then stop with Ctrl+C
+```
+
+## Step-by-Step Workaround
+
+### **If No Export Option Exists:**
+
+**Option A: Use "Save As"**
+```
+1. File → Save As
+2. File name: "my_capture"
+3. Save as type: "Wireshark/tcpdump/... - pcap"
+4. Click Save
+```
+
+**Option B: Use "Export Specified Packets"**
+```
+1. File → Export Specified Packets...
+2. Check "All packets" or "Selected packets only"
+3. Output file: "my_capture.pcap"
+4. Save as type: "pcap" or "pcapng"
+```
+
+## Complete Command Line Method (Guaranteed to Work)
+
+### **Step 1: Capture with tshark**
+```bash
+# Open Command Prompt as Administrator
+tshark -i "Wi-Fi" -w capture.pcap -a duration:60
+```
+
+### **Step 2: Generate Traffic in New Window**
+```bash
+# Open another Command Prompt
+ping -n 10 google.com
+ping -n 10 8.8.8.8
+curl http://www.example.com
+nslookup youtube.com
+```
+
+### **Step 3: Verify Capture File**
+```bash
+# After 60 seconds, tshark auto-stops
+# Check if file was created:
+dir *.pcap
+
+# Read the capture file:
+tshark -r capture.pcap -Y "dns or http or tcp or icmp"
+```
+
+## Wireshark Version Differences
+
+- **Older versions**: Use "Save As" → "pcap"
+- **Newer versions**: Use "Export Packet Dissections" → "As PCAP"
+- **Wireshark 3.0+**: Both options should work
+
+## Quick Verification
+
+After exporting, verify your file:
+```bash
+# Check file format
+capinfos capture.pcap
+
+# Read packets
+tshark -r capture.pcap -c 10
+```
+
+## If All Else Fails - Use Pre-Built Command Script
+
+Create a batch file `capture.bat`:
+```batch
+@echo off
+echo Starting 60-second capture...
+tshark -i "Wi-Fi" -w my_traffic.pcap -a duration:60
+echo Capture complete! File: my_traffic.pcap
